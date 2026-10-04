@@ -1,0 +1,58 @@
+/* ── Base badge ───────────────────────────────────────── */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  line-height: 1;
+  border-radius: var(--radius-full);
+  padding: 3px 8px;
+  white-space: nowrap;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border: 1px solid transparent;
+}
+
+/* ── Severity / semantic variants ────────────────────── */
+.badge--critical {
+  background: var(--sev-critical-bg);
+  color: var(--sev-critical);
+  border-color: #fecaca;
+}
+
+.badge--high {
+  background: var(--sev-high-bg);
+  color: var(--sev-high);
+  border-color: #fed7aa;
+}
+
+.badge--medium {
+  background: var(--sev-medium-bg);
+  color: var(--sev-medium);
+  border-color: #fef08a;
+}
+
+.badge--low {
+  background: var(--sev-low-bg);
+  color: var(--sev-low);
+  border-color: #bfdbfe;
+}
+
+.badge--neutral {
+  background: var(--color-neutral-100);
+  color: var(--color-text-secondary);
+  border-color: var(--color-border);
+}
+
+.badge--success {
+  background: var(--color-success-bg);
+  color: var(--color-success-600);
+  border-color: #bbf7d0;
+}
+
+.badge--info {
+  background: var(--color-brand-50);
+  color: var(--color-brand-600);
+  border-color: var(--color-brand-200);
+}

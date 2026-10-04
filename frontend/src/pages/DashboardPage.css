@@ -1,0 +1,262 @@
+/* ── Page layout ──────────────────────────────────────── */
+.dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  max-width: 1200px;
+}
+
+/* ── Hero card ────────────────────────────────────────── */
+.dashboard__hero {
+  background: var(--color-neutral-900);
+  border-radius: var(--radius-xl);
+  padding: var(--space-8) var(--space-8);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-6);
+  overflow: hidden;
+  position: relative;
+}
+
+/* Subtle accent glow */
+.dashboard__hero::before {
+  content: '';
+  position: absolute;
+  top: -60px;
+  right: -60px;
+  width: 260px;
+  height: 260px;
+  background: radial-gradient(circle, rgba(99, 102, 241, 0.25) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.dashboard__hero-text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  position: relative;
+  z-index: 1;
+}
+
+.dashboard__hero-eyebrow {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-accent);
+}
+
+.dashboard__hero-title {
+  font-size: var(--font-size-3xl);
+  font-weight: var(--font-weight-bold);
+  color: #fff;
+  line-height: var(--line-height-tight);
+  letter-spacing: -0.02em;
+}
+
+.dashboard__hero-sub {
+  font-size: var(--font-size-base);
+  color: rgba(255, 255, 255, 0.55);
+  max-width: 420px;
+  line-height: var(--line-height-relaxed);
+}
+
+.dashboard__hero-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.dashboard__hero-visual {
+  position: relative;
+  z-index: 1;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+/* Mini score ring illustration */
+.dashboard__score-ring {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  border: 8px solid rgba(99, 102, 241, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.dashboard__score-ring::after {
+  content: '';
+  position: absolute;
+  inset: -8px;
+  border-radius: 50%;
+  border: 8px solid transparent;
+  border-top-color: var(--color-accent);
+  border-right-color: var(--color-accent);
+  transform: rotate(-30deg);
+}
+
+.dashboard__score-ring-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.dashboard__score-placeholder {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+  color: rgba(255, 255, 255, 0.2);
+  line-height: 1;
+}
+
+.dashboard__score-label {
+  font-size: var(--font-size-xs);
+  color: rgba(255, 255, 255, 0.28);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+@media (max-width: 767px) {
+  .dashboard__hero { flex-direction: column; align-items: flex-start; padding: var(--space-6); }
+  .dashboard__hero-visual { display: none; }
+  .dashboard__hero-title { font-size: var(--font-size-2xl); }
+}
+
+/* ── Section header ───────────────────────────────────── */
+.dashboard__section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+.dashboard__section-title {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+/* ── Stats grid ───────────────────────────────────────── */
+.dashboard__stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-4);
+}
+
+@media (max-width: 1023px) {
+  .dashboard__stats { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 479px) {
+  .dashboard__stats { grid-template-columns: 1fr; }
+}
+
+/* ── Stat card ────────────────────────────────────────── */
+.stat-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.stat-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.stat-card__icon {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.stat-card__icon--indigo  { background: var(--color-brand-50);  color: var(--color-brand-600); }
+.stat-card__icon--orange  { background: var(--sev-high-bg);     color: var(--sev-high); }
+.stat-card__icon--emerald { background: var(--color-success-bg); color: var(--color-success-600); }
+.stat-card__icon--violet  { background: #f5f3ff;                color: #7c3aed; }
+
+.stat-card__value {
+  font-size: var(--font-size-3xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.stat-card__value--empty {
+  color: var(--color-text-muted);
+}
+
+.stat-card__label {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  font-weight: var(--font-weight-medium);
+}
+
+.stat-card__note {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-muted);
+  line-height: var(--line-height-snug);
+}
+
+/* ── How it works ─────────────────────────────────────── */
+.dashboard__steps {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-4);
+}
+
+@media (max-width: 1023px) {
+  .dashboard__steps { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 479px) {
+  .dashboard__steps { grid-template-columns: 1fr; }
+}
+
+.step-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.step-card__number {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-full);
+  background: var(--color-accent-subtle);
+  color: var(--color-accent);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-bold);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.step-card__title {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-primary);
+}
+
+.step-card__desc {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-secondary);
+  line-height: var(--line-height-relaxed);
+}
+
+/* ── Recent audits ────────────────────────────────────── */
+.dashboard__recent {
+  /* empty state fills the card */
+}

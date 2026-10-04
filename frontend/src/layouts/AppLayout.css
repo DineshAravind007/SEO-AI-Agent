@@ -1,0 +1,53 @@
+/* ── Outer shell ──────────────────────────────────────── */
+.app-layout {
+  display: flex;
+  min-height: 100vh;
+  position: relative;
+}
+
+/* ── Mobile overlay ───────────────────────────────────── */
+.app-layout__overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  z-index: var(--z-overlay);
+  animation: fadeIn 200ms ease forwards;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ── Main column ──────────────────────────────────────── */
+.app-layout__body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  /* offset left for the fixed sidebar on desktop */
+  margin-left: var(--sidebar-width);
+}
+
+.app-layout__content {
+  flex: 1;
+  padding: var(--space-6);
+  overflow: auto;
+}
+
+/* ── Tablet / Mobile ──────────────────────────────────── */
+@media (max-width: 1023px) {
+  .app-layout__body {
+    margin-left: 0;
+  }
+
+  .app-layout__content {
+    padding: var(--space-4);
+  }
+}
+
+@media (max-width: 639px) {
+  .app-layout__content {
+    padding: var(--space-3);
+  }
+}
