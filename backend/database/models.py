@@ -98,3 +98,17 @@ class CompetitorAnalysis(Base):
 
     base_audit = relationship("Audit", foreign_keys=[base_audit_id])
     competitor_audit = relationship("Audit", foreign_keys=[competitor_audit_id])
+
+class KeywordAnalysis(Base):
+    __tablename__ = "keyword_analyses"
+
+    id = Column(Integer, primary_key=True, index=True)
+    audit_id = Column(Integer, ForeignKey("audits.id"))
+    keyword = Column(String, index=True)
+    opportunity_score = Column(Integer, nullable=True)
+    intent = Column(String, nullable=True)
+    analysis_data = Column(String, nullable=True) # JSON storing metrics, gap data, etc.
+    suggestions_data = Column(String, nullable=True) # JSON storing related keyword suggestions
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+    audit = relationship("Audit")
