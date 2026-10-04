@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { 
-  AlertCircle, CheckCircle, Globe, Activity, 
-  BarChart2, AlertTriangle, ArrowRight, RefreshCw, FileText
+  AlertCircle, CheckCircle, Activity, 
+  AlertTriangle, RefreshCw, FileText, Download
 } from 'lucide-react';
 import { auditsApi } from '../api/audits';
 import Card from '../components/ui/Card';
@@ -10,6 +10,7 @@ import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
 import EmptyState from '../components/ui/EmptyState';
 import './AuditResultPage.css';
+import '../components/ui/Form.css';
 
 const STATUS_MESSAGES = {
   pending: "Preparing audit...",
@@ -38,6 +39,20 @@ export default function AuditResultPage() {
   const [error, setError] = useState(null);
   const [isPolling, setIsPolling] = useState(true);
   const [isLoadingResults, setIsLoadingResults] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [downloadError, setDownloadError] = useState(null);
+
+  const handleDownloadReport = async () => {
+    setIsDownloading(true);
+    setDownloadError(null);
+    try {
+      await auditsApi.downloadAuditReport(id);
+    } catch (err) {
+      setDownloadError(err.message || 'Failed to generate report.');
+    } finally {
+      setIsDownloading(false);
+    }
+  };
 
   // Poll for audit status
   useEffect(() => {
@@ -174,12 +189,30 @@ export default function AuditResultPage() {
               <span>Crawled {pages.length} pages</span>
             </div>
           </div>
-          <div>
-            <Button as={Link} to={`/audit/${audit.id}/recommendations`} variant="primary" icon={<RefreshCw size={14} />}>
-              Get AI Recommendations
+          <div style={{ display: 'flex', gap: 'var(--space-3)', flexWrap: 'wrap' }}>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={handleDownloadReport}
+              loading={isDownloading}
+              icon={<Download size={14} strokeWidth={2} />}
+            >
+              Download Report
+            </Button>
+            <Button as={Link} to={`/issues?auditId=${audit.id}`} variant="secondary" size="sm" icon={<AlertTriangle size={14} />}>
+              View Issues
+            </Button>
+            <Button as={Link} to={`/audit/${audit.id}/recommendations`} variant="primary" size="sm" icon={<RefreshCw size={14} />}>
+              AI Recommendations
             </Button>
           </div>
         </div>
+        {downloadError && (
+          <div className="error-alert" role="alert" style={{ marginTop: 'var(--space-3)' }}>
+            <AlertCircle size={14} style={{ display: 'inline', marginRight: 6 }} />
+            {downloadError}
+          </div>
+        )}
       </div>
 
       {isLoadingResults ? (
