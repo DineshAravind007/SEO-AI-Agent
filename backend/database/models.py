@@ -17,6 +17,7 @@ class Audit(Base):
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     
     pages = relationship("Page", back_populates="audit")
+    recommendations = relationship("AIRecommendation", back_populates="audit")
 
 class Page(Base):
     __tablename__ = "pages"
@@ -69,3 +70,19 @@ class SEOIssue(Base):
     impact = Column(String)
 
     page = relationship("Page", back_populates="issues")
+
+class AIRecommendation(Base):
+    __tablename__ = "ai_recommendations"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    audit_id = Column(Integer, ForeignKey("audits.id"))
+    issue_type = Column(String)
+    severity = Column(String)
+    title = Column(String)
+    explanation = Column(String)
+    recommendation = Column(String)
+    suggested_action = Column(String)
+    example = Column(String, nullable=True)
+    confidence = Column(Integer, nullable=True)
+    
+    audit = relationship("Audit", back_populates="recommendations")

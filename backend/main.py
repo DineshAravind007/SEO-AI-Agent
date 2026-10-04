@@ -1,6 +1,6 @@
 import logging
 from fastapi import FastAPI
-from backend.api import audits
+from backend.api import audits, ai
 from backend.database.connection import engine, Base
 import backend.database.models  # registers models with Base before create_all
 
@@ -19,6 +19,7 @@ app = FastAPI(
 )
 
 app.include_router(audits.router)
+app.include_router(ai.router)
 
 
 @app.get("/api/health", tags=["health"])
