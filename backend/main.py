@@ -2,7 +2,7 @@ import logging
 import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from backend.api import audits, ai
+from backend.api import audits, ai, competitors
 from backend.database.connection import engine, Base
 import backend.database.models  # registers models with Base before create_all
 
@@ -34,6 +34,7 @@ app.add_middleware(
 
 app.include_router(audits.router)
 app.include_router(ai.router)
+app.include_router(competitors.router)
 
 
 @app.get("/api/health", tags=["health"])

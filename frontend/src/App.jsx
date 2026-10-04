@@ -6,6 +6,7 @@ import AuditResultPage from './pages/AuditResultPage';
 import AuditHistoryPage from './pages/AuditHistoryPage';
 import IssuesPage from './pages/IssuesPage';
 import RecommendationsPage from './pages/RecommendationsPage';
+import CompetitorsPage from './pages/CompetitorsPage';
 
 export default function App() {
   return (
@@ -19,7 +20,7 @@ export default function App() {
         <Route path="/audit/new"       element={<NewAuditPage />} />
         <Route path="/audit/:id"       element={<AuditResultPage />} />
         <Route path="/audit/:id/recommendations" element={<RecommendationsPage />} />
-        
+        <Route path="/audit/:id/competitors" element={<CompetitorsPage />} />        
         {/* Placeholders for global views */}
         <Route path="/audits"          element={<AuditHistoryPage />} />
         <Route path="/issues"          element={<IssuesPage />} />

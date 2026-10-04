@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { 
   AlertCircle, CheckCircle, Activity, 
-  AlertTriangle, RefreshCw, FileText, Download
+  AlertTriangle, RefreshCw, FileText, Download, BarChart2
 } from 'lucide-react';
 import { auditsApi } from '../api/audits';
 import Card from '../components/ui/Card';
@@ -198,6 +198,9 @@ export default function AuditResultPage() {
               icon={<Download size={14} strokeWidth={2} />}
             >
               Download Report
+            </Button>
+            <Button as={Link} to={`/audit/${audit.id}/competitors`} variant="secondary" size="sm" icon={<BarChart2 size={14} />}>
+              Compare
             </Button>
             <Button as={Link} to={`/issues?auditId=${audit.id}`} variant="secondary" size="sm" icon={<AlertTriangle size={14} />}>
               View Issues

@@ -69,4 +69,20 @@ export const auditsApi = {
     document.body.removeChild(anchor);
     URL.revokeObjectURL(objectUrl);
   },
+  /**
+   * Add competitors to an audit.
+   * @param {number} auditId 
+   * @param {string[]} urls 
+   */
+  addCompetitors: async (auditId, urls) => {
+    return await apiClient.post(`/api/audits/${auditId}/competitors`, { urls });
+  },
+
+  getCompetitors: async (auditId) => {
+    return await apiClient.get(`/api/audits/${auditId}/competitors`);
+  },
+
+  getCompetitorsComparison: async (auditId) => {
+    return await apiClient.get(`/api/audits/${auditId}/competitors/comparison`);
+  },
 };

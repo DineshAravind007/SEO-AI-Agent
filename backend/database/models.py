@@ -15,6 +15,7 @@ class Audit(Base):
     score = Column(Integer, nullable=True)
     score_data = Column(String, nullable=True) # Stored as JSON string
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    is_competitor = Column(Boolean, default=False)
     
     pages = relationship("Page", back_populates="audit")
     recommendations = relationship("AIRecommendation", back_populates="audit")
@@ -86,3 +87,14 @@ class AIRecommendation(Base):
     confidence = Column(Integer, nullable=True)
     
     audit = relationship("Audit", back_populates="recommendations")
+
+class CompetitorAnalysis(Base):
+    __tablename__ = "competitor_analyses"
+
+    id = Column(Integer, primary_key=True, index=True)
+    base_audit_id = Column(Integer, ForeignKey("audits.id"))
+    competitor_audit_id = Column(Integer, ForeignKey("audits.id"))
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+    base_audit = relationship("Audit", foreign_keys=[base_audit_id])
+    competitor_audit = relationship("Audit", foreign_keys=[competitor_audit_id])

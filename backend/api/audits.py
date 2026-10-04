@@ -70,6 +70,7 @@ def list_audits(
     """Return a summary list of all audits, newest first."""
     audits = (
         db.query(Audit)
+        .filter(Audit.is_competitor == False)
         .order_by(Audit.id.desc())
         .offset(skip)
         .limit(limit)
