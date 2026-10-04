@@ -10,6 +10,7 @@ const PAGE_TITLES = {
   '/audits':          'Audit History',
   '/issues':          'Issues',
   '/recommendations': 'AI Recommendations',
+  '/gsc':             'Google Search Console',
 };
 
 export default function AppLayout() {

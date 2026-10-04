@@ -112,3 +112,12 @@ class KeywordAnalysis(Base):
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
     audit = relationship("Audit")
+
+class GSCCredentials(Base):
+    __tablename__ = "gsc_credentials"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(String, index=True, default="default_user")
+    credentials_json = Column(String)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)

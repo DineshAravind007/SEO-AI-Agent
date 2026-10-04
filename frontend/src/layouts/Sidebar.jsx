@@ -24,6 +24,7 @@ const NAV_SECTIONS = [
       { path: '/audits',           label: 'Audit History',      Icon: Clock },
       { path: '/issues',           label: 'Issues',             Icon: AlertTriangle },
       { path: '/recommendations',  label: 'AI Recommendations', Icon: Sparkles },
+      { path: '/gsc',              label: 'Search Console',     Icon: LayoutDashboard },
     ],
   },
 ];
