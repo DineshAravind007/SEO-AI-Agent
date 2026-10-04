@@ -22,9 +22,17 @@ class AuditResponse(BaseModel):
     max_pages: int
     max_depth: int
     error_message: Optional[str] = None
+    score: Optional[int] = None
 
     class Config:
         from_attributes = True
+
+class ScoreResponse(BaseModel):
+    score: int
+    grade: str
+    severity_counts: dict
+    category_counts: dict
+    explanation: str
 
 class PageResponse(BaseModel):
     id: int

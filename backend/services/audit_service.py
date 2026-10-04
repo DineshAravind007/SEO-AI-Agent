@@ -4,7 +4,10 @@ from backend.database.models import Audit, Page, SEOIssue
 from backend.crawler.spider import Crawler
 from backend.crawler.extractor import extract_seo_data
 from backend.seo_analyzer.analyzers import run_page_analyzers, analyze_audit_duplicates
+from backend.technical.analyzers import run_technical_analyzers, check_xml_sitemap
+from backend.technical.scorer import calculate_audit_score
 from backend.database.connection import SessionLocal
+import json
 
 logger = logging.getLogger(__name__)
 
@@ -76,6 +79,11 @@ def run_audit_task(audit_id: int):
                     setattr(page, k, v)
                     p_data[k] = v
                 valid_html_pages += 1
+                
+            p_data["html_length"] = len(result.get("html", ""))
+            p_data["duration"] = result.get("duration", 0)
+            p_data["status_code"] = result.get("status_code")
+            p_data["final_url"] = result.get("final_url")
 
             db.add(page)
             db.flush()          # assign page.id before we reference it
@@ -118,7 +126,23 @@ def run_audit_task(audit_id: int):
                 d_issue["page_id"] = matching["page_id"]
                 all_issues.append(d_issue)
 
-        # ── 4. Persist issues ─────────────────────────────────────────────────
+        # Technical per-page checks
+        for p_data in pages_data:
+            tech_issues = run_technical_analyzers(p_data)
+            for issue in tech_issues:
+                issue["page_id"] = p_data["page_id"]
+            all_issues.extend(tech_issues)
+            
+        # Technical audit-level checks (sitemap)
+        # We need the sitemap URLs from the robots.txt parser if they exist
+        robots_sitemaps = crawler.rp.site_maps() if hasattr(crawler.rp, "site_maps") and crawler.rp.site_maps() else []
+        sitemap_issues = check_xml_sitemap(audit.url, robots_sitemaps)
+        for issue in sitemap_issues:
+            # associate with the first page (usually base url)
+            issue["page_id"] = pages_data[0]["page_id"] if pages_data else None
+            if issue["page_id"]:
+                all_issues.append(issue)
+
         for issue_dict in all_issues:
             db_issue = SEOIssue(
                 page_id=issue_dict["page_id"],
@@ -132,6 +156,11 @@ def run_audit_task(audit_id: int):
                 impact=issue_dict["impact"],
             )
             db.add(db_issue)
+            
+        # 5. Calculate Score
+        score_data = calculate_audit_score(all_issues, len(pages_data))
+        audit.score = score_data["score"]
+        audit.score_data = json.dumps(score_data)
 
         audit.status = "completed"
         db.commit()

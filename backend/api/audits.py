@@ -4,7 +4,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from backend.database.connection import get_db
 from backend.database.models import Audit, Page, SEOIssue
-from backend.schemas.audits import AuditRequest, AuditResponse, SEOIssueResponse
+from backend.schemas.audits import AuditRequest, AuditResponse, SEOIssueResponse, ScoreResponse
 from backend.services.audit_service import run_audit_task
 from typing import List, Any
 
@@ -104,3 +104,17 @@ def get_audit_issues(audit_id: int, db: Session = Depends(get_db)):
         .all()
     )
     return {"issues": [_serialize_issue(i) for i in issues]}
+
+@router.get("/{audit_id}/score", response_model=ScoreResponse)
+def get_audit_score(audit_id: int, db: Session = Depends(get_db)):
+    db_audit = db.query(Audit).filter(Audit.id == audit_id).first()
+    if not db_audit:
+        raise HTTPException(status_code=404, detail="Audit not found")
+        
+    if db_audit.status != "completed":
+        raise HTTPException(status_code=400, detail="Score is not available until the audit is completed.")
+        
+    if not db_audit.score_data:
+        raise HTTPException(status_code=404, detail="Score data not found for this audit.")
+        
+    return json.loads(db_audit.score_data)

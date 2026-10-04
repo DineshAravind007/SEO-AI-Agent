@@ -135,6 +135,20 @@ def test_full_audit_flow(mocker):
     issue_codes = [i["issue_code"] for i in issues]
     # The fixture HTML has one external link and no internal links
     assert "NO_INTERNAL_LINKS" in issue_codes, f"Issue codes found: {issue_codes}"
+    # Technical issues should be present
+    assert "MISSING_SITEMAP" in issue_codes, f"Issue codes found: {issue_codes}"
+    assert "MISSING_CANONICAL" not in issue_codes # The fixture has a canonical URL
+    
+    # 5. Check Score
+    score_resp = client.get(f"/api/audits/{audit_id}/score")
+    assert score_resp.status_code == 200
+    score_data = score_resp.json()
+    assert "score" in score_data
+    assert "grade" in score_data
+    assert "severity_counts" in score_data
+    assert "category_counts" in score_data
+    assert "explanation" in score_data
+    assert isinstance(score_data["score"], int)
 
 
 def test_audit_failed_when_nothing_crawled(mocker):

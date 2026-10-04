@@ -12,6 +12,8 @@ class Audit(Base):
     max_depth = Column(Integer, default=2)
     status = Column(String, default="pending") # pending, crawling, analyzing, completed, failed
     error_message = Column(String, nullable=True)
+    score = Column(Integer, nullable=True)
+    score_data = Column(String, nullable=True) # Stored as JSON string
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     
     pages = relationship("Page", back_populates="audit")
