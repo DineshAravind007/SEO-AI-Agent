@@ -1,0 +1,69 @@
+from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, DateTime
+from sqlalchemy.orm import relationship
+import datetime
+from backend.database.connection import Base
+
+class Audit(Base):
+    __tablename__ = "audits"
+
+    id = Column(Integer, primary_key=True, index=True)
+    url = Column(String, index=True)
+    max_pages = Column(Integer, default=10)
+    max_depth = Column(Integer, default=2)
+    status = Column(String, default="pending") # pending, crawling, analyzing, completed, failed
+    error_message = Column(String, nullable=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    
+    pages = relationship("Page", back_populates="audit")
+
+class Page(Base):
+    __tablename__ = "pages"
+
+    id = Column(Integer, primary_key=True, index=True)
+    audit_id = Column(Integer, ForeignKey("audits.id"))
+    url = Column(String)
+    final_url = Column(String, nullable=True)
+    depth = Column(Integer)
+    status_code = Column(Integer, nullable=True)
+    content_type = Column(String, nullable=True)
+    title = Column(String, nullable=True)
+    title_length = Column(Integer, nullable=True)
+    meta_description = Column(String, nullable=True)
+    meta_description_length = Column(Integer, nullable=True)
+    h1_list = Column(String, nullable=True) # Stored as JSON string
+    h1_count = Column(Integer, nullable=True)
+    h2_list = Column(String, nullable=True) # Stored as JSON string
+    h2_count = Column(Integer, nullable=True)
+    canonical_url = Column(String, nullable=True)
+    meta_robots = Column(String, nullable=True)
+    x_robots_tag = Column(String, nullable=True)
+    html_language = Column(String, nullable=True)
+    viewport_meta_presence = Column(Boolean, default=False)
+    word_count = Column(Integer, nullable=True)
+    image_count = Column(Integer, nullable=True)
+    images_missing_alt = Column(Integer, nullable=True)
+    internal_link_count = Column(Integer, nullable=True)
+    external_link_count = Column(Integer, nullable=True)
+    open_graph_presence = Column(Boolean, default=False)
+    structured_data_presence = Column(Boolean, default=False)
+    crawl_status = Column(String) # success, error, skipped
+    error_message = Column(String, nullable=True)
+
+    audit = relationship("Audit", back_populates="pages")
+    issues = relationship("SEOIssue", back_populates="page")
+
+class SEOIssue(Base):
+    __tablename__ = "seo_issues"
+
+    id = Column(Integer, primary_key=True, index=True)
+    page_id = Column(Integer, ForeignKey("pages.id"))
+    page_url = Column(String)
+    category = Column(String)
+    severity = Column(String)
+    issue_code = Column(String)
+    title = Column(String)
+    description = Column(String)
+    recommendation_summary = Column(String)
+    impact = Column(String)
+
+    page = relationship("Page", back_populates="issues")

@@ -1,0 +1,152 @@
+import logging
+from sqlalchemy.orm import Session
+from backend.database.models import Audit, Page, SEOIssue
+from backend.crawler.spider import Crawler
+from backend.crawler.extractor import extract_seo_data
+from backend.seo_analyzer.analyzers import run_page_analyzers, analyze_audit_duplicates
+from backend.database.connection import SessionLocal
+
+logger = logging.getLogger(__name__)
+
+
+def run_audit_task(audit_id: int):
+    """
+    Background task: crawl the target URL, extract SEO data, run analyzers,
+    and persist everything to the database.
+
+    Status flow: pending → crawling → analyzing → completed | failed
+    """
+    db: Session = SessionLocal()
+    try:
+        audit = db.query(Audit).filter(Audit.id == audit_id).first()
+        if not audit:
+            logger.error("run_audit_task: audit %s not found", audit_id)
+            return
+
+        logger.info("Starting audit %s for %s", audit_id, audit.url)
+
+        # ── 1. Crawl ─────────────────────────────────────────────────────────
+        audit.status = "crawling"
+        db.commit()
+
+        crawler = Crawler(audit.url, max_pages=audit.max_pages, max_depth=audit.max_depth)
+        crawler.run()
+
+        logger.info("Crawl finished. %s raw results.", len(crawler.results))
+
+        if not crawler.results:
+            # robots.txt blocked the start URL or a network error prevented any fetch
+            audit.status = "failed"
+            audit.error_message = "No pages could be fetched. The start URL may be blocked by robots.txt or unreachable."
+            db.commit()
+            return
+
+        # ── 2. Extract & persist pages ────────────────────────────────────────
+        audit.status = "analyzing"
+        db.commit()
+
+        pages_data = []          # accumulated for duplicate-detection analyzers
+        valid_html_pages = 0
+
+        for result in crawler.results:
+            is_html = (
+                result.get("html")
+                and result.get("content_type")
+                and "text/html" in result["content_type"]
+                and result.get("status_code") == 200
+            )
+
+            page = Page(
+                audit_id=audit.id,
+                url=result["url"],
+                final_url=result.get("final_url"),
+                depth=result["depth"],
+                status_code=result.get("status_code"),
+                content_type=result.get("content_type"),
+                crawl_status="error" if result.get("error") else "success",
+                error_message=result.get("error"),
+            )
+
+            p_data: dict = {"url": result["url"]}
+
+            if is_html:
+                headers = result.get("headers", {})
+                extracted = extract_seo_data(result["html"], result["url"], headers)
+                for k, v in extracted.items():
+                    setattr(page, k, v)
+                    p_data[k] = v
+                valid_html_pages += 1
+
+            db.add(page)
+            db.flush()          # assign page.id before we reference it
+
+            p_data["page_id"] = page.id
+            pages_data.append(p_data)
+
+        db.commit()
+        logger.info("Persisted %s pages (%s valid HTML).", len(pages_data), valid_html_pages)
+
+        if valid_html_pages == 0:
+            # Every fetched URL failed or returned non-HTML — nothing useful to analyse
+            audit.status = "failed"
+            audit.error_message = (
+                f"Crawled {len(pages_data)} URL(s) but none returned valid HTML. "
+                "Check status codes and content types stored in /pages."
+            )
+            db.commit()
+            return
+
+        # ── 3. Run per-page analyzers ─────────────────────────────────────────
+        all_issues: list = []
+
+        for p_data in pages_data:
+            if not p_data.get("title") and not p_data.get("h1_count"):
+                # Skip pages with no extracted content (non-HTML / error pages)
+                continue
+            issues = run_page_analyzers(p_data)
+            for issue in issues:
+                issue["page_id"] = p_data["page_id"]
+            all_issues.extend(issues)
+
+        # Audit-level duplicate detection
+        dup_issues = analyze_audit_duplicates(pages_data)
+        for d_issue in dup_issues:
+            matching = next(
+                (p for p in pages_data if p["url"] == d_issue["page_url"]), None
+            )
+            if matching:
+                d_issue["page_id"] = matching["page_id"]
+                all_issues.append(d_issue)
+
+        # ── 4. Persist issues ─────────────────────────────────────────────────
+        for issue_dict in all_issues:
+            db_issue = SEOIssue(
+                page_id=issue_dict["page_id"],
+                page_url=issue_dict["page_url"],
+                category=issue_dict["category"],
+                severity=issue_dict["severity"],
+                issue_code=issue_dict["issue_code"],
+                title=issue_dict["title"],
+                description=issue_dict["description"],
+                recommendation_summary=issue_dict["recommendation_summary"],
+                impact=issue_dict["impact"],
+            )
+            db.add(db_issue)
+
+        audit.status = "completed"
+        db.commit()
+        logger.info(
+            "Audit %s completed. pages=%s issues=%s",
+            audit_id, len(pages_data), len(all_issues)
+        )
+
+    except Exception as exc:
+        logger.exception("Unexpected error in run_audit_task(%s)", audit_id)
+        try:
+            audit.status = "failed"
+            audit.error_message = f"Internal error: {exc}"
+            db.commit()
+        except Exception:
+            pass
+    finally:
+        db.close()
