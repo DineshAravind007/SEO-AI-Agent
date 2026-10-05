@@ -3,17 +3,19 @@ import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
-from backend.api import audits, ai, competitors, keywords, gsc, monitoring
+from backend.api import audits, ai, competitors, keywords, gsc, monitoring, auth
 from backend.database.connection import engine, Base
 import backend.database.models  # registers models with Base before create_all
+from backend.database.migration import run_migrations
 
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
 )
 
-# Create all tables on startup
+# Create all tables on startup & run non-destructive schema migrations
 Base.metadata.create_all(bind=engine)
+run_migrations()
 
 app = FastAPI(
     title="SEO AI Agent API",
@@ -35,9 +37,10 @@ app.add_middleware(
     allow_origins=[_frontend_origin],
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE"],
-    allow_headers=["Content-Type"],
+    allow_headers=["Content-Type", "Authorization"],
 )
 
+app.include_router(auth.router)
 app.include_router(audits.router)
 app.include_router(ai.router)
 app.include_router(competitors.router)

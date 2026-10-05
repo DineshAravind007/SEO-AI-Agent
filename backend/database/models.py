@@ -3,10 +3,27 @@ from sqlalchemy.orm import relationship
 import datetime
 from backend.database.connection import Base
 
+class User(Base):
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, index=True)
+    email = Column(String, unique=True, index=True, nullable=False)
+    password_hash = Column(String, nullable=False)
+    name = Column(String, nullable=True)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+
+    audits = relationship("Audit", back_populates="user")
+    monitoring_projects = relationship("MonitoringProject", back_populates="user")
+    competitor_analyses = relationship("CompetitorAnalysis", back_populates="user")
+    keyword_analyses = relationship("KeywordAnalysis", back_populates="user")
+
 class Audit(Base):
     __tablename__ = "audits"
 
     id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
     url = Column(String, index=True)
     max_pages = Column(Integer, default=10)
     max_depth = Column(Integer, default=2)
@@ -17,6 +34,7 @@ class Audit(Base):
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     is_competitor = Column(Boolean, default=False)
     
+    user = relationship("User", back_populates="audits")
     pages = relationship("Page", back_populates="audit")
     recommendations = relationship("AIRecommendation", back_populates="audit")
 
@@ -92,10 +110,12 @@ class CompetitorAnalysis(Base):
     __tablename__ = "competitor_analyses"
 
     id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
     base_audit_id = Column(Integer, ForeignKey("audits.id"))
     competitor_audit_id = Column(Integer, ForeignKey("audits.id"))
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
+    user = relationship("User", back_populates="competitor_analyses")
     base_audit = relationship("Audit", foreign_keys=[base_audit_id])
     competitor_audit = relationship("Audit", foreign_keys=[competitor_audit_id])
 
@@ -103,6 +123,7 @@ class KeywordAnalysis(Base):
     __tablename__ = "keyword_analyses"
 
     id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
     audit_id = Column(Integer, ForeignKey("audits.id"))
     keyword = Column(String, index=True)
     opportunity_score = Column(Integer, nullable=True)
@@ -111,6 +132,7 @@ class KeywordAnalysis(Base):
     suggestions_data = Column(String, nullable=True) # JSON storing related keyword suggestions
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
+    user = relationship("User", back_populates="keyword_analyses")
     audit = relationship("Audit")
 
 class GSCCredentials(Base):
@@ -126,6 +148,7 @@ class MonitoringProject(Base):
     __tablename__ = "monitoring_projects"
     
     id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
     url = Column(String, index=True)
     name = Column(String)
     frequency = Column(String, default="weekly") # daily, weekly, monthly
@@ -137,6 +160,7 @@ class MonitoringProject(Base):
     max_depth = Column(Integer, default=2)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
+    user = relationship("User", back_populates="monitoring_projects")
     last_audit = relationship("Audit", foreign_keys=[last_audit_id])
     reports = relationship("MonitoringReport", back_populates="project")
 

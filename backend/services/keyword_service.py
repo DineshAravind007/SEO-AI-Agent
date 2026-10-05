@@ -108,6 +108,7 @@ def analyze_keyword(db: Session, audit: Audit, keyword: str) -> KeywordAnalysisR
 
     # Persist the analysis
     db_analysis = KeywordAnalysis(
+        user_id=audit.user_id,
         audit_id=audit.id,
         keyword=keyword,
         opportunity_score=score,

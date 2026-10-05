@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from typing import List
 
 from backend.database.connection import get_db
-from backend.database.models import MonitoringProject, MonitoringReport, Audit
+from backend.database.models import MonitoringProject, MonitoringReport, Audit, User
 from backend.schemas.monitoring import (
     MonitoringProjectCreate,
     MonitoringProjectUpdate,
@@ -13,6 +13,7 @@ from backend.schemas.monitoring import (
     MonitoringReportResponse,
 )
 from backend.services import monitoring_service
+from backend.security.auth import get_current_user
 
 logger = logging.getLogger(__name__)
 
@@ -54,39 +55,66 @@ def _augment_project(proj: MonitoringProject, db: Session) -> dict:
     return data
 
 
+def _verify_project_ownership(proj: MonitoringProject, user: User) -> MonitoringProject:
+    if not proj:
+        raise HTTPException(status_code=404, detail="Monitoring project not found")
+    if proj.user_id is not None and proj.user_id != user.id:
+        raise HTTPException(status_code=403, detail="Not authorized to access this monitoring project")
+    return proj
+
+
 @router.post("", response_model=MonitoringProjectResponse)
-def create_monitoring_project(req: MonitoringProjectCreate, db: Session = Depends(get_db)):
-    proj = monitoring_service.create_project(db, req)
+def create_monitoring_project(
+    req: MonitoringProjectCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    proj = monitoring_service.create_project(db, req, user_id=current_user.id)
     return _augment_project(proj, db)
 
 
 @router.get("", response_model=List[MonitoringProjectResponse])
-def list_monitoring_projects(db: Session = Depends(get_db)):
-    projects = monitoring_service.list_projects(db)
+def list_monitoring_projects(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    projects = monitoring_service.list_projects(db, user_id=current_user.id)
     return [_augment_project(p, db) for p in projects]
 
 
 @router.get("/{project_id}", response_model=MonitoringProjectResponse)
-def get_monitoring_project(project_id: int, db: Session = Depends(get_db)):
+def get_monitoring_project(
+    project_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     proj = monitoring_service.get_project(db, project_id)
-    if not proj:
-        raise HTTPException(status_code=404, detail="Monitoring project not found")
+    _verify_project_ownership(proj, current_user)
     return _augment_project(proj, db)
 
 
 @router.put("/{project_id}", response_model=MonitoringProjectResponse)
-def update_monitoring_project(project_id: int, req: MonitoringProjectUpdate, db: Session = Depends(get_db)):
-    proj = monitoring_service.update_project(db, project_id, req)
-    if not proj:
-        raise HTTPException(status_code=404, detail="Monitoring project not found")
-    return _augment_project(proj, db)
+def update_monitoring_project(
+    project_id: int,
+    req: MonitoringProjectUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    proj = monitoring_service.get_project(db, project_id)
+    _verify_project_ownership(proj, current_user)
+    updated = monitoring_service.update_project(db, project_id, req)
+    return _augment_project(updated, db)
 
 
 @router.delete("/{project_id}")
-def delete_monitoring_project(project_id: int, db: Session = Depends(get_db)):
-    success = monitoring_service.delete_project(db, project_id)
-    if not success:
-        raise HTTPException(status_code=404, detail="Monitoring project not found")
+def delete_monitoring_project(
+    project_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    proj = monitoring_service.get_project(db, project_id)
+    _verify_project_ownership(proj, current_user)
+    monitoring_service.delete_project(db, project_id)
     return {"status": "deleted"}
 
 
@@ -95,10 +123,10 @@ def run_monitoring_audit_now(
     project_id: int,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     proj = monitoring_service.get_project(db, project_id)
-    if not proj:
-        raise HTTPException(status_code=404, detail="Monitoring project not found")
+    _verify_project_ownership(proj, current_user)
     if not proj.is_active:
         raise HTTPException(status_code=400, detail="Cannot run audit for a paused project. Resume it first.")
 
@@ -107,11 +135,14 @@ def run_monitoring_audit_now(
 
 
 @router.get("/{project_id}/history")
-def get_monitoring_history(project_id: int, db: Session = Depends(get_db)):
+def get_monitoring_history(
+    project_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     """Returns per-audit score / issue data for charting."""
     proj = monitoring_service.get_project(db, project_id)
-    if not proj:
-        raise HTTPException(status_code=404, detail="Monitoring project not found")
+    _verify_project_ownership(proj, current_user)
 
     reports = (
         db.query(MonitoringReport)
@@ -140,11 +171,14 @@ def get_monitoring_history(project_id: int, db: Session = Depends(get_db)):
 
 
 @router.get("/{project_id}/changes")
-def get_monitoring_changes(project_id: int, db: Session = Depends(get_db)):
+def get_monitoring_changes(
+    project_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     """Returns the latest change summary (score delta, new/resolved issues)."""
     proj = monitoring_service.get_project(db, project_id)
-    if not proj:
-        raise HTTPException(status_code=404, detail="Monitoring project not found")
+    _verify_project_ownership(proj, current_user)
 
     latest_report = (
         db.query(MonitoringReport)
@@ -174,10 +208,13 @@ def get_monitoring_changes(project_id: int, db: Session = Depends(get_db)):
 
 
 @router.get("/{project_id}/reports", response_model=List[MonitoringReportResponse])
-def list_reports(project_id: int, db: Session = Depends(get_db)):
+def list_reports(
+    project_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     proj = monitoring_service.get_project(db, project_id)
-    if not proj:
-        raise HTTPException(status_code=404, detail="Monitoring project not found")
+    _verify_project_ownership(proj, current_user)
 
     reports = (
         db.query(MonitoringReport)

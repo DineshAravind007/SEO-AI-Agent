@@ -1,6 +1,8 @@
 import json
 import logging
 from datetime import datetime, timedelta, timezone
+from typing import Optional
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 from backend.database.models import MonitoringProject, MonitoringReport, Audit, SEOIssue, Page
 from backend.schemas.monitoring import MonitoringProjectCreate, MonitoringProjectUpdate
@@ -24,8 +26,9 @@ def _get_next_audit_date(frequency: str) -> datetime:
     return now + timedelta(days=7)
 
 
-def create_project(db: Session, req: MonitoringProjectCreate) -> MonitoringProject:
+def create_project(db: Session, req: MonitoringProjectCreate, user_id: Optional[int] = None) -> MonitoringProject:
     proj = MonitoringProject(
+        user_id=user_id,
         url=req.url,
         name=req.name,
         frequency=req.frequency,
@@ -74,8 +77,11 @@ def get_project(db: Session, project_id: int) -> MonitoringProject:
     return db.query(MonitoringProject).filter(MonitoringProject.id == project_id).first()
 
 
-def list_projects(db: Session):
-    return db.query(MonitoringProject).order_by(MonitoringProject.id.asc()).all()
+def list_projects(db: Session, user_id: Optional[int] = None):
+    query = db.query(MonitoringProject)
+    if user_id is not None:
+        query = query.filter(or_(MonitoringProject.user_id == user_id, MonitoringProject.user_id.is_(None)))
+    return query.order_by(MonitoringProject.id.asc()).all()
 
 
 def execute_monitoring_run(project_id: int, db: Session):

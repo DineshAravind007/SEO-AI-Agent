@@ -3,24 +3,31 @@ from sqlalchemy.orm import Session
 import json
 
 from backend.database.connection import get_db
-from backend.database.models import Audit, CompetitorAnalysis, Page, SEOIssue
+from backend.database.models import Audit, CompetitorAnalysis, Page, SEOIssue, User
 from backend.schemas.competitors import CompetitorRequest, CompetitorResult, ComparisonResponse
 from backend.schemas.audits import AuditResponse
 from backend.services.audit_service import run_audit_task
 from backend.services.comparison_service import compare_audits
+from backend.security.auth import get_current_user
 
 router = APIRouter(prefix="/api/audits/{audit_id}/competitors", tags=["competitors"])
+
+def _verify_base_audit(audit: Audit, user: User):
+    if not audit:
+        raise HTTPException(status_code=404, detail="Base audit not found")
+    if audit.user_id is not None and audit.user_id != user.id:
+        raise HTTPException(status_code=403, detail="Not authorized to access this audit's competitors")
 
 @router.post("", response_model=list[CompetitorResult])
 def add_competitors(
     audit_id: int,
     req: CompetitorRequest,
     background_tasks: BackgroundTasks,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     base_audit = db.query(Audit).filter(Audit.id == audit_id).first()
-    if not base_audit:
-        raise HTTPException(status_code=404, detail="Base audit not found")
+    _verify_base_audit(base_audit, current_user)
         
     results = []
     
@@ -40,6 +47,7 @@ def add_competitors(
             comp_audit = existing.competitor_audit
         else:
             comp_audit = Audit(
+                user_id=current_user.id,
                 url=url,
                 max_pages=base_audit.max_pages,
                 max_depth=base_audit.max_depth,
@@ -50,6 +58,7 @@ def add_competitors(
             db.flush()
             
             comp_link = CompetitorAnalysis(
+                user_id=current_user.id,
                 base_audit_id=audit_id,
                 competitor_audit_id=comp_audit.id
             )
@@ -66,10 +75,13 @@ def add_competitors(
     return results
 
 @router.get("", response_model=list[CompetitorResult])
-def get_competitors(audit_id: int, db: Session = Depends(get_db)):
+def get_competitors(
+    audit_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     base_audit = db.query(Audit).filter(Audit.id == audit_id).first()
-    if not base_audit:
-        raise HTTPException(status_code=404, detail="Base audit not found")
+    _verify_base_audit(base_audit, current_user)
         
     links = db.query(CompetitorAnalysis).filter(CompetitorAnalysis.base_audit_id == audit_id).all()
     results = []
@@ -81,10 +93,13 @@ def get_competitors(audit_id: int, db: Session = Depends(get_db)):
     return results
 
 @router.get("/comparison", response_model=ComparisonResponse)
-def compare_competitors(audit_id: int, db: Session = Depends(get_db)):
+def compare_competitors(
+    audit_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     base_audit = db.query(Audit).filter(Audit.id == audit_id).first()
-    if not base_audit:
-        raise HTTPException(status_code=404, detail="Base audit not found")
+    _verify_base_audit(base_audit, current_user)
         
     if base_audit.status != "completed":
         raise HTTPException(status_code=400, detail="Base audit must be completed to generate comparison.")

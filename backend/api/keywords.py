@@ -4,21 +4,28 @@ from sqlalchemy.orm import Session
 from typing import List
 
 from backend.database.connection import get_db
-from backend.database.models import Audit, KeywordAnalysis
+from backend.database.models import Audit, KeywordAnalysis, User
 from backend.schemas.keywords import KeywordAnalyzeRequest, KeywordAnalysisResult, KeywordUsage, KeywordGap
 from backend.services.keyword_service import analyze_keyword
+from backend.security.auth import get_current_user
 
 router = APIRouter(prefix="/api/audits/{audit_id}/keywords", tags=["keywords"])
+
+def _verify_audit_keywords_access(audit: Audit, user: User):
+    if not audit:
+        raise HTTPException(status_code=404, detail="Audit not found")
+    if audit.user_id is not None and audit.user_id != user.id:
+        raise HTTPException(status_code=403, detail="Not authorized to access this audit's keywords")
 
 @router.post("/analyze", response_model=List[KeywordAnalysisResult])
 def analyze_keywords(
     audit_id: int,
     req: KeywordAnalyzeRequest,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     audit = db.query(Audit).filter(Audit.id == audit_id).first()
-    if not audit:
-        raise HTTPException(status_code=404, detail="Audit not found")
+    _verify_audit_keywords_access(audit, current_user)
         
     if audit.status != "completed":
         raise HTTPException(status_code=400, detail="Cannot analyze keywords for an incomplete audit.")
@@ -55,10 +62,13 @@ def analyze_keywords(
     return results
 
 @router.get("", response_model=List[KeywordAnalysisResult])
-def get_keywords(audit_id: int, db: Session = Depends(get_db)):
+def get_keywords(
+    audit_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     audit = db.query(Audit).filter(Audit.id == audit_id).first()
-    if not audit:
-        raise HTTPException(status_code=404, detail="Audit not found")
+    _verify_audit_keywords_access(audit, current_user)
         
     analyses = db.query(KeywordAnalysis).filter(KeywordAnalysis.audit_id == audit_id).all()
     results = []

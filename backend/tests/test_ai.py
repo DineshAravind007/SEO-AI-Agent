@@ -292,8 +292,9 @@ def test_get_recommendations_endpoint(completed_audit, mocker):
 
 
 def test_recommendations_audit_not_found():
+    # Audit 99999 does not exist; the endpoint returns 404 before reaching the service.
     resp = client.post("/api/audits/99999/recommendations")
-    assert resp.status_code == 400
+    assert resp.status_code == 404
 
 
 def test_recommendations_audit_pending(ai_db):

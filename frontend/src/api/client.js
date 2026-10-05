@@ -1,5 +1,13 @@
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
+const TOKEN_KEY = 'seo_agent_token';
+
+export const tokenStorage = {
+  get: () => localStorage.getItem(TOKEN_KEY),
+  set: (token) => localStorage.setItem(TOKEN_KEY, token),
+  remove: () => localStorage.removeItem(TOKEN_KEY),
+};
+
 class APIError extends Error {
   constructor(message, status, data) {
     super(message);
@@ -11,9 +19,11 @@ class APIError extends Error {
 
 async function request(endpoint, options = {}) {
   const url = `${BASE_URL}${endpoint}`;
-  
+
+  const token = tokenStorage.get();
   const headers = {
     'Content-Type': 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...options.headers,
   };
 
@@ -28,7 +38,7 @@ async function request(endpoint, options = {}) {
 
   try {
     const response = await fetch(url, config);
-    
+
     // Attempt to parse JSON response
     let data = null;
     try {
