@@ -3,7 +3,7 @@ import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.sessions import SessionMiddleware
-from backend.api import audits, ai, competitors, keywords, gsc
+from backend.api import audits, ai, competitors, keywords, gsc, monitoring
 from backend.database.connection import engine, Base
 import backend.database.models  # registers models with Base before create_all
 
@@ -34,7 +34,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[_frontend_origin],
     allow_credentials=True,
-    allow_methods=["GET", "POST"],
+    allow_methods=["GET", "POST", "PUT", "DELETE"],
     allow_headers=["Content-Type"],
 )
 
@@ -43,7 +43,7 @@ app.include_router(ai.router)
 app.include_router(competitors.router)
 app.include_router(keywords.router)
 app.include_router(gsc.router)
-
+app.include_router(monitoring.router)
 
 @app.get("/api/health", tags=["health"])
 def health_check():

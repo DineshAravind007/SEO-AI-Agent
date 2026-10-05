@@ -11,6 +11,7 @@ const PAGE_TITLES = {
   '/issues':          'Issues',
   '/recommendations': 'AI Recommendations',
   '/gsc':             'Google Search Console',
+  '/monitoring':      'Automated Monitoring',
 };
 
 export default function AppLayout() {

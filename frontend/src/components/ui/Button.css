@@ -94,6 +94,19 @@
   border-color: var(--color-error-600);
 }
 
+/* ── Outline (transparent bg with explicit border) ─────── */
+.btn--outline {
+  background: transparent;
+  color: var(--color-text-secondary);
+  border-color: var(--color-border);
+}
+.btn--outline:hover:not(:disabled) {
+  background: var(--color-neutral-100);
+  color: var(--color-text-primary);
+  border-color: var(--color-border-strong);
+}
+
+
 /* ── Loading spinner ──────────────────────────────────── */
 .btn__spinner {
   width: 14px;

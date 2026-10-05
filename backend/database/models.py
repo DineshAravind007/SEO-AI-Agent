@@ -121,3 +121,36 @@ class GSCCredentials(Base):
     credentials_json = Column(String)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+
+class MonitoringProject(Base):
+    __tablename__ = "monitoring_projects"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    url = Column(String, index=True)
+    name = Column(String)
+    frequency = Column(String, default="weekly") # daily, weekly, monthly
+    is_active = Column(Boolean, default=True)
+    last_audit_id = Column(Integer, ForeignKey("audits.id"), nullable=True)
+    last_audit_date = Column(DateTime, nullable=True)
+    next_audit_date = Column(DateTime, default=datetime.datetime.utcnow)
+    max_pages = Column(Integer, default=10)
+    max_depth = Column(Integer, default=2)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+    last_audit = relationship("Audit", foreign_keys=[last_audit_id])
+    reports = relationship("MonitoringReport", back_populates="project")
+
+class MonitoringReport(Base):
+    __tablename__ = "monitoring_reports"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    project_id = Column(Integer, ForeignKey("monitoring_projects.id"))
+    audit_id = Column(Integer, ForeignKey("audits.id"))
+    previous_audit_id = Column(Integer, ForeignKey("audits.id"), nullable=True)
+    score_change = Column(Integer, nullable=True)
+    changes_data = Column(String, nullable=True) # JSON of changes
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+    project = relationship("MonitoringProject", back_populates="reports")
+    audit = relationship("Audit", foreign_keys=[audit_id])
+    previous_audit = relationship("Audit", foreign_keys=[previous_audit_id])

@@ -6,6 +6,7 @@ import {
   AlertTriangle,
   Sparkles,
   Search,
+  Activity,
 } from 'lucide-react';
 import './Sidebar.css';
 
@@ -22,6 +23,7 @@ const NAV_SECTIONS = [
     label: 'Analysis',
     items: [
       { path: '/audits',           label: 'Audit History',      Icon: Clock },
+      { path: '/monitoring',       label: 'Monitoring',         Icon: Activity },
       { path: '/issues',           label: 'Issues',             Icon: AlertTriangle },
       { path: '/recommendations',  label: 'AI Recommendations', Icon: Sparkles },
       { path: '/gsc',              label: 'Search Console',     Icon: LayoutDashboard },
