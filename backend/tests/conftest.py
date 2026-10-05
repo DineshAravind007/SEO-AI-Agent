@@ -17,7 +17,7 @@ def auto_override_auth(request):
     seamlessly receive an authenticated test user, preserving full backward compatibility.
     Dedicated auth tests in test_auth.py are excluded to test real token/unauthenticated behavior.
     """
-    if "test_auth" in request.node.nodeid:
+    if "test_auth" in request.node.nodeid or "test_notifications" in request.node.nodeid:
         yield
         return
 

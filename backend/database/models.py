@@ -18,6 +18,7 @@ class User(Base):
     monitoring_projects = relationship("MonitoringProject", back_populates="user")
     competitor_analyses = relationship("CompetitorAnalysis", back_populates="user")
     keyword_analyses = relationship("KeywordAnalysis", back_populates="user")
+    notification_preference = relationship("NotificationPreference", back_populates="user", uselist=False)
 
 class Audit(Base):
     __tablename__ = "audits"
@@ -178,3 +179,34 @@ class MonitoringReport(Base):
     project = relationship("MonitoringProject", back_populates="reports")
     audit = relationship("Audit", foreign_keys=[audit_id])
     previous_audit = relationship("Audit", foreign_keys=[previous_audit_id])
+
+class NotificationPreference(Base):
+    __tablename__ = "notification_preferences"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), unique=True, index=True)
+    email_enabled = Column(Boolean, default=True)
+    score_drop_alert = Column(Boolean, default=True)
+    critical_issue_alert = Column(Boolean, default=True)
+    high_issue_alert = Column(Boolean, default=True)
+    weekly_summary = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+    
+    user = relationship("User", back_populates="notification_preference")
+
+class NotificationHistory(Base):
+    __tablename__ = "notification_history"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), index=True)
+    monitoring_project_id = Column(Integer, ForeignKey("monitoring_projects.id"), nullable=True)
+    notification_type = Column(String) # "score_drop", "critical_issue", "weekly_summary"
+    severity = Column(String) # CRITICAL, HIGH, MEDIUM, LOW
+    recipient = Column(String) # email address
+    status = Column(String) # sent, skipped, failed
+    error_message = Column(String, nullable=True)
+    sent_at = Column(DateTime, default=datetime.datetime.utcnow)
+    
+    user = relationship("User")
+    project = relationship("MonitoringProject")

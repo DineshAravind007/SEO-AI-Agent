@@ -15,6 +15,7 @@ import KeywordsPage from './pages/KeywordsPage';
 import SearchConsolePage from './pages/SearchConsolePage';
 import MonitoringPage from './pages/MonitoringPage';
 import MonitoringDetailPage from './pages/MonitoringDetailPage';
+import NotificationSettingsPage from './pages/NotificationSettingsPage';
 
 export default function App() {
   return (
@@ -47,6 +48,7 @@ export default function App() {
           <Route path="/audits"          element={<AuditHistoryPage />} />
           <Route path="/issues"          element={<IssuesPage />} />
           <Route path="/recommendations" element={<RecommendationsPage />} />
+          <Route path="/settings/notifications" element={<NotificationSettingsPage />} />
         </Route>
 
         {/* 404 fallback */}

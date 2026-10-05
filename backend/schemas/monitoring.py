@@ -65,6 +65,7 @@ class MonitoringProjectResponse(BaseModel):
     # Augmented fields resolved in the service/API layer
     last_score: Optional[int] = None
     score_change: Optional[int] = None
+    change_severity: Optional[str] = "NO_CHANGE"
 
     class Config:
         from_attributes = True

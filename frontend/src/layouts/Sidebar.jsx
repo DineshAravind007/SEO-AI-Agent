@@ -29,6 +29,13 @@ const NAV_SECTIONS = [
       { path: '/gsc',              label: 'Search Console',     Icon: LayoutDashboard },
     ],
   },
+  {
+    id: 'settings',
+    label: 'Settings',
+    items: [
+      { path: '/settings/notifications', label: 'Notifications', Icon: AlertTriangle },
+    ],
+  },
 ];
 
 export default function Sidebar({ isOpen, onClose }) {

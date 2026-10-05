@@ -36,6 +36,7 @@ def _augment_project(proj: MonitoringProject, db: Session) -> dict:
         "created_at": proj.created_at,
         "last_score": None,
         "score_change": None,
+        "change_severity": "NO_CHANGE",
     }
     if proj.last_audit_id:
         last_audit = db.query(Audit).filter(Audit.id == proj.last_audit_id).first()
@@ -51,6 +52,12 @@ def _augment_project(proj: MonitoringProject, db: Session) -> dict:
     )
     if latest_report:
         data["score_change"] = latest_report.score_change
+        if latest_report.changes_data:
+            try:
+                changes = json.loads(latest_report.changes_data)
+                data["change_severity"] = changes.get("change_severity", "NO_CHANGE")
+            except (json.JSONDecodeError, Exception):
+                pass
 
     return data
 

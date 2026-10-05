@@ -4,9 +4,11 @@ from datetime import datetime, timedelta, timezone
 from typing import Optional
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
-from backend.database.models import MonitoringProject, MonitoringReport, Audit, SEOIssue, Page
+from backend.database.models import MonitoringProject, MonitoringReport, Audit, SEOIssue, Page, User
 from backend.schemas.monitoring import MonitoringProjectCreate, MonitoringProjectUpdate
 from backend.services.audit_service import run_audit_task
+from backend.services.change_detection_service import detect_changes
+from backend.services.notification_service import notification_service
 
 logger = logging.getLogger(__name__)
 
@@ -155,68 +157,25 @@ def _do_monitoring_run(project_id: int, db: Session):
     new_pages = db.query(Page).filter(Page.audit_id == new_audit.id).all()
     new_issues = db.query(SEOIssue).join(Page).filter(Page.audit_id == new_audit.id).all()
 
-    changes_data = {
-        "score_old": None,
-        "score_new": new_audit.score,
-        "critical_old": 0,
-        "critical_new": sum(1 for i in new_issues if i.severity.lower() == "critical"),
-        "high_old": 0,
-        "high_new": sum(1 for i in new_issues if i.severity.lower() == "high"),
-        "medium_old": 0,
-        "medium_new": sum(1 for i in new_issues if i.severity.lower() == "medium"),
-        "low_old": 0,
-        "low_new": sum(1 for i in new_issues if i.severity.lower() == "low"),
-        "pages_old": 0,
-        "pages_new": len(new_pages),
-        "resolved_issues": [],
-        "new_issues": [],
-    }
-
-    score_change = 0
-
     # 4. Compare with previous audit if available
+    changes_data = {}
+    score_change = 0
+    change_severity = "NO_CHANGE"
+    
     if previous_audit_id:
         old_audit = db.query(Audit).filter(Audit.id == previous_audit_id).first()
         if old_audit and old_audit.status == "completed":
-            changes_data["score_old"] = old_audit.score
-            if old_audit.score is not None and new_audit.score is not None:
-                score_change = new_audit.score - old_audit.score
-
             old_pages = db.query(Page).filter(Page.audit_id == old_audit.id).all()
             old_issues = db.query(SEOIssue).join(Page).filter(Page.audit_id == old_audit.id).all()
 
-            changes_data["pages_old"] = len(old_pages)
-            changes_data["critical_old"] = sum(1 for i in old_issues if i.severity.lower() == "critical")
-            changes_data["high_old"] = sum(1 for i in old_issues if i.severity.lower() == "high")
-            changes_data["medium_old"] = sum(1 for i in old_issues if i.severity.lower() == "medium")
-            changes_data["low_old"] = sum(1 for i in old_issues if i.severity.lower() == "low")
-
-            # Detect new and resolved issues by (issue_code, page_url) pair
-            old_keys = {f"{i.issue_code}:{i.page_url}" for i in old_issues}
-            new_keys = {f"{i.issue_code}:{i.page_url}" for i in new_issues}
-
-            resolved_keys = old_keys - new_keys
-            added_keys = new_keys - old_keys
-
-            # De-duplicate by issue_code for summary display (take first occurrence)
-            seen_resolved = set()
-            resolved_list = []
-            for i in old_issues:
-                k = f"{i.issue_code}:{i.page_url}"
-                if k in resolved_keys and i.issue_code not in seen_resolved:
-                    seen_resolved.add(i.issue_code)
-                    resolved_list.append({"code": i.issue_code, "title": i.title or i.issue_code, "url": i.page_url})
-
-            seen_added = set()
-            added_list = []
-            for i in new_issues:
-                k = f"{i.issue_code}:{i.page_url}"
-                if k in added_keys and i.issue_code not in seen_added:
-                    seen_added.add(i.issue_code)
-                    added_list.append({"code": i.issue_code, "title": i.title or i.issue_code, "url": i.page_url})
-
-            changes_data["resolved_issues"] = resolved_list
-            changes_data["new_issues"] = added_list
+            changes_data = detect_changes(old_audit, new_audit, old_pages, new_pages, old_issues, new_issues)
+            score_change = changes_data.get("score_change", 0)
+            change_severity = changes_data.get("change_severity", "NO_CHANGE")
+    else:
+        # First run - no old audit
+        changes_data = detect_changes(None, new_audit, [], new_pages, [], new_issues)
+        score_change = changes_data.get("score_change", 0)
+        change_severity = changes_data.get("change_severity", "NO_CHANGE")
 
     # 5. Persist monitoring report
     report = MonitoringReport(
@@ -234,6 +193,30 @@ def _do_monitoring_run(project_id: int, db: Session):
     proj.next_audit_date = _get_next_audit_date(proj.frequency)
 
     db.commit()
+
+    # 7. Notifications
+    user = db.query(User).filter(User.id == proj.user_id).first()
+    if user and change_severity in ["CRITICAL", "HIGH"] or score_change < -5:
+        subject = f"SEO Alert: {proj.name} ({change_severity})"
+        body = f"""
+        <html>
+        <body>
+            <h2>SEO Alert for {proj.name}</h2>
+            <p>Score changed by <strong>{score_change}</strong> (Now {new_audit.score}).</p>
+            <p>Severity: <strong>{change_severity}</strong></p>
+            <p>Please check your monitoring dashboard for more details.</p>
+        </body>
+        </html>
+        """
+        
+        # Determine notification type
+        alert_type = "high_issue"
+        if change_severity == "CRITICAL":
+            alert_type = "critical_issue"
+        if score_change <= -5:
+            alert_type = "score_drop"
+            
+        notification_service.send_alert(db, user, proj.id, alert_type, change_severity, subject, body)
     logger.info(
         "Monitoring run for project %s complete. New audit=%s score=%s change=%s",
         project_id, new_audit.id, new_audit.score, score_change,

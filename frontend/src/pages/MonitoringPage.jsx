@@ -227,6 +227,7 @@ export default function MonitoringPage() {
                   <th>Last Audit</th>
                   <th>Score</th>
                   <th>Change</th>
+                  <th>Severity</th>
                   <th>Next Audit</th>
                   <th>Actions</th>
                 </tr>
@@ -247,6 +248,15 @@ export default function MonitoringPage() {
                     <td className="mon-col-date">{formatDate(p.last_audit_date)}</td>
                     <td><ScoreBadge score={p.last_score} /></td>
                     <td><ScoreChange change={p.score_change} /></td>
+                    <td>
+                      <Badge variant={
+                        p.change_severity === 'CRITICAL' ? 'danger' :
+                        p.change_severity === 'HIGH' ? 'warning' :
+                        p.change_severity === 'MEDIUM' ? 'accent' : 'neutral'
+                      }>
+                        {p.change_severity}
+                      </Badge>
+                    </td>
                     <td className="mon-col-date">{formatDate(p.next_audit_date)}</td>
                     <td className="mon-actions">
                       <Button

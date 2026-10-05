@@ -213,6 +213,18 @@ export default function MonitoringDetailPage() {
           ) : <span className="mon-meta-card__empty">No changes yet</span>}
         </Card>
         <Card className="mon-meta-card">
+          <span className="mon-meta-card__label"><AlertCircle size={12} /> Severity</span>
+          {latestChange && latestChange.change_severity ? (
+            <Badge variant={
+              latestChange.change_severity === 'CRITICAL' ? 'danger' :
+              latestChange.change_severity === 'HIGH' ? 'warning' :
+              latestChange.change_severity === 'MEDIUM' ? 'accent' : 'neutral'
+            }>
+              {latestChange.change_severity}
+            </Badge>
+          ) : <span className="mon-meta-card__empty">—</span>}
+        </Card>
+        <Card className="mon-meta-card">
           <span className="mon-meta-card__label"><Clock size={12} /> Last Audit</span>
           <span className="mon-meta-card__value">{fmt(project.last_audit_date)}</span>
         </Card>
