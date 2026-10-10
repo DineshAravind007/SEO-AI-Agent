@@ -16,6 +16,7 @@ import SearchConsolePage from './pages/SearchConsolePage';
 import MonitoringPage from './pages/MonitoringPage';
 import MonitoringDetailPage from './pages/MonitoringDetailPage';
 import NotificationSettingsPage from './pages/NotificationSettingsPage';
+import PerformancePage from './pages/PerformancePage';
 
 export default function App() {
   return (
@@ -42,6 +43,7 @@ export default function App() {
           <Route path="/audit/:id/recommendations" element={<RecommendationsPage />} />
           <Route path="/audit/:id/competitors"     element={<CompetitorsPage />} />
           <Route path="/audit/:id/keywords"        element={<KeywordsPage />} />
+          <Route path="/audit/:id/performance"     element={<PerformancePage />} />
           <Route path="/gsc"             element={<SearchConsolePage />} />
           <Route path="/monitoring"      element={<MonitoringPage />} />
           <Route path="/monitoring/:id"  element={<MonitoringDetailPage />} />

@@ -6,6 +6,8 @@ from backend.crawler.extractor import extract_seo_data
 from backend.seo_analyzer.analyzers import run_page_analyzers, analyze_audit_duplicates
 from backend.technical.analyzers import run_technical_analyzers, check_xml_sitemap
 from backend.technical.scorer import calculate_audit_score
+from backend.services.performance_analyzer import analyze_performance
+from backend.database.models import AuditPerformance, PagePerformance
 from backend.database.connection import SessionLocal
 import json
 
@@ -90,6 +92,43 @@ def run_audit_task(audit_id: int):
 
             p_data["page_id"] = page.id
             pages_data.append(p_data)
+            
+            # --- Performance Analysis ---
+            if result.get("status_code") == 200:
+                perf_result = analyze_performance(result)
+                m = perf_result["metrics"]
+                page_perf = PagePerformance(
+                    page_id=page.id,
+                    response_time_ms=m.get("response_time_ms"),
+                    html_size_bytes=m.get("html_size_bytes"),
+                    is_compressed=m.get("is_compressed", False),
+                    has_cache_control=m.get("has_cache_control", False),
+                    image_count=m.get("image_count", 0),
+                    oversized_image_count=0,
+                    missing_dimensions_count=m.get("missing_dimensions_count", 0),
+                    lcp_status=m.get("lcp_status", "UNAVAILABLE"),
+                    inp_status=m.get("inp_status", "UNAVAILABLE"),
+                    cls_status=m.get("cls_status", "UNAVAILABLE"),
+                    ttfb_ms=m.get("ttfb_ms_approx"),
+                    fcp_ms=m.get("fcp_ms"),
+                    performance_score=m.get("performance_score"),
+                )
+                db.add(page_perf)
+                
+                # Add performance issues (using explicit fields, not splat)
+                for issue_data in perf_result["issues"]:
+                    issue = SEOIssue(
+                        page_id=page.id,
+                        page_url=page.url,
+                        category=issue_data["category"],
+                        severity=issue_data["severity"],
+                        issue_code=issue_data["issue_code"],
+                        title=issue_data["title"],
+                        description=issue_data["description"],
+                        recommendation_summary=issue_data["recommendation_summary"],
+                        impact=issue_data["impact"],
+                    )
+                    db.add(issue)
 
         db.commit()
         logger.info("Persisted %s pages (%s valid HTML).", len(pages_data), valid_html_pages)
@@ -161,6 +200,21 @@ def run_audit_task(audit_id: int):
         score_data = calculate_audit_score(all_issues, len(pages_data))
         audit.score = score_data["score"]
         audit.score_data = json.dumps(score_data)
+
+        # 6. Aggregate Performance
+        page_performances = db.query(PagePerformance).join(Page).filter(Page.audit_id == audit.id).all()
+        if page_performances:
+            avg_rt = sum(p.response_time_ms for p in page_performances if p.response_time_ms) / len(page_performances)
+            tot_size = sum(p.html_size_bytes for p in page_performances if p.html_size_bytes)
+            avg_score = sum(p.performance_score for p in page_performances if p.performance_score is not None) / len(page_performances)
+            
+            audit_perf = AuditPerformance(
+                audit_id=audit.id,
+                avg_response_time_ms=int(avg_rt),
+                total_page_size_bytes=tot_size,
+                performance_score=int(avg_score)
+            )
+            db.add(audit_perf)
 
         audit.status = "completed"
         db.commit()

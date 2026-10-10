@@ -38,6 +38,26 @@ class Audit(Base):
     user = relationship("User", back_populates="audits")
     pages = relationship("Page", back_populates="audit")
     recommendations = relationship("AIRecommendation", back_populates="audit")
+    performance = relationship("AuditPerformance", back_populates="audit", uselist=False)
+
+class AuditPerformance(Base):
+    __tablename__ = "audit_performance"
+
+    id = Column(Integer, primary_key=True, index=True)
+    audit_id = Column(Integer, ForeignKey("audits.id"), unique=True)
+    
+    # Server/Technical
+    avg_response_time_ms = Column(Integer, nullable=True)
+    total_page_size_bytes = Column(Integer, nullable=True)
+    
+    # CWV (Unavailable via standard requests)
+    lcp_status = Column(String, default="UNAVAILABLE") # GOOD, NEEDS_IMPROVEMENT, POOR, UNAVAILABLE
+    inp_status = Column(String, default="UNAVAILABLE")
+    cls_status = Column(String, default="UNAVAILABLE")
+    
+    performance_score = Column(Integer, nullable=True)
+    
+    audit = relationship("Audit", back_populates="performance")
 
 class Page(Base):
     __tablename__ = "pages"
@@ -74,6 +94,35 @@ class Page(Base):
 
     audit = relationship("Audit", back_populates="pages")
     issues = relationship("SEOIssue", back_populates="page")
+    performance = relationship("PagePerformance", back_populates="page", uselist=False)
+
+class PagePerformance(Base):
+    __tablename__ = "page_performance"
+
+    id = Column(Integer, primary_key=True, index=True)
+    page_id = Column(Integer, ForeignKey("pages.id"), unique=True)
+    
+    # Measured
+    response_time_ms = Column(Integer, nullable=True)
+    html_size_bytes = Column(Integer, nullable=True)
+    is_compressed = Column(Boolean, default=False)
+    has_cache_control = Column(Boolean, default=False)
+    
+    # Optional from HTML analysis
+    image_count = Column(Integer, default=0)
+    oversized_image_count = Column(Integer, default=0)
+    missing_dimensions_count = Column(Integer, default=0)
+    
+    # CWV
+    lcp_status = Column(String, default="UNAVAILABLE")
+    inp_status = Column(String, default="UNAVAILABLE")
+    cls_status = Column(String, default="UNAVAILABLE")
+    ttfb_ms = Column(Integer, nullable=True)
+    fcp_ms = Column(Integer, nullable=True)
+    
+    performance_score = Column(Integer, nullable=True)
+    
+    page = relationship("Page", back_populates="performance")
 
 class SEOIssue(Base):
     __tablename__ = "seo_issues"
