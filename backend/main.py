@@ -30,13 +30,17 @@ app.add_middleware(
 
 # ── CORS ─────────────────────────────────────────────────────────────────────
 # Allow the Vite dev server origin by default.
-# Set FRONTEND_ORIGIN env var to override (e.g. production domain).
-_frontend_origin = os.getenv("FRONTEND_ORIGIN", "http://localhost:5173")
+# Set FRONTEND_ORIGIN env var to override (e.g. production domain or comma-separated list).
+_raw_origin = os.getenv("FRONTEND_ORIGIN", "http://localhost:5173")
+_allowed_origins = [o.strip() for o in _raw_origin.split(",") if o.strip()]
+if "http://localhost:5173" in _allowed_origins and "http://127.0.0.1:5173" not in _allowed_origins:
+    _allowed_origins.append("http://127.0.0.1:5173")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[_frontend_origin],
+    allow_origins=_allowed_origins,
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["Content-Type", "Authorization"],
 )
 

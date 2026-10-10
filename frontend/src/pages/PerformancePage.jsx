@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import {
   Zap, ArrowLeft, AlertCircle, CheckCircle, AlertTriangle,
   Clock, HardDrive, Image, Shield, Server, Globe,

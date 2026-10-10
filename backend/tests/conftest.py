@@ -3,11 +3,13 @@ from backend.main import app
 from backend.security.auth import get_current_user
 from backend.database.models import User
 
+import datetime
 _DEFAULT_TEST_USER = User(
     id=1,
     email="test@example.com",
     name="Test User",
     is_active=True,
+    created_at=datetime.datetime.utcnow(),
 )
 
 @pytest.fixture(autouse=True)
@@ -17,7 +19,7 @@ def auto_override_auth(request):
     seamlessly receive an authenticated test user, preserving full backward compatibility.
     Dedicated auth tests in test_auth.py are excluded to test real token/unauthenticated behavior.
     """
-    if "test_auth" in request.node.nodeid or "test_notifications" in request.node.nodeid:
+    if "test_auth" in request.node.nodeid or "test_notifications" in request.node.nodeid or "test_e2e_workflow" in request.node.nodeid:
         yield
         return
 
