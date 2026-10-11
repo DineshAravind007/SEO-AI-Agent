@@ -1,4 +1,4 @@
-import { apiClient } from './client';
+import { apiClient, tokenStorage } from './client';
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
@@ -42,8 +42,12 @@ export const auditsApi = {
    * without navigating away from the current page.
    */
   downloadAuditReport: async (auditId) => {
+    const token = tokenStorage.get();
     const url = `${BASE_URL}/api/audits/${auditId}/report`;
-    const response = await fetch(url, { method: 'GET' });
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
 
     if (!response.ok) {
       let detail = `HTTP ${response.status}`;
