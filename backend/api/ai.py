@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from backend.database.connection import get_db
 from backend.database.models import Audit, User
@@ -19,13 +19,14 @@ def _verify_audit_ai_access(audit_id: int, db: Session, user: User) -> Audit:
 @router.post("/{audit_id}/recommendations", response_model=AIRecommendationResponse)
 def create_recommendations(
     audit_id: int,
+    force: bool = Query(False, description="Regenerate recommendations even if cached ones exist"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     """Generate or return existing AI recommendations for a completed audit."""
     _verify_audit_ai_access(audit_id, db, current_user)
     try:
-        recommendations = generate_and_save_recommendations(audit_id, db)
+        recommendations = generate_and_save_recommendations(audit_id, db, force=force)
         return AIRecommendationResponse(audit_id=audit_id, recommendations=recommendations)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
